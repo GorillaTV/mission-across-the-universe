@@ -1,12 +1,15 @@
 import * as THREE from 'three';
 import { Terrain } from './Terrain.js';
-import { makeRockTexture } from './textures.js';
+import { makeRockTexture, makePlanetTexture } from './textures.js';
 
 const BASE = import.meta.env.BASE_URL;
 const texLoader = new THREE.TextureLoader();
 
-function loadTexture(file) {
-  return new Promise((resolve, reject) => {
+// Load a texture, but never reject: if the image is missing or corrupt (e.g. a
+// half-downloaded file that is actually an HTML error page), fall back to a
+// procedural surface so a single bad file can't break the whole planet.
+function loadTexture(file, fallback = null) {
+  return new Promise((resolve) => {
     texLoader.load(
       `${BASE}textures/${file}`,
       (t) => {
@@ -14,7 +17,10 @@ function loadTexture(file) {
         resolve(t);
       },
       undefined,
-      reject
+      () => {
+        console.warn(`Texture "${file}" failed to load; using procedural fallback.`);
+        resolve(fallback || makePlanetTexture(new THREE.Color(0x888888)));
+      }
     );
   });
 }
@@ -66,9 +72,12 @@ export class World {
     const hemi = new THREE.HemisphereLight(planet.sky, planet.groundTint, 0.5);
     this._add(hemi);
 
-    // Load textures in parallel
+    // Load textures in parallel. A banded fallback is used for gas giants if
+    // their surface image is missing/corrupt; rocky bodies get a mottled one.
+    const gasGiant = planet.type === 'Gas giant';
+    const surfaceFallback = makePlanetTexture(new THREE.Color(planet.groundTint), gasGiant);
     const [surfaceTex, starTex] = await Promise.all([
-      loadTexture(planet.texture),
+      loadTexture(planet.texture, surfaceFallback),
       loadTexture('stars.jpg'),
     ]);
 
