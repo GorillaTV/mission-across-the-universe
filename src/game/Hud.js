@@ -60,6 +60,16 @@ export class Hud {
           <button id="send-photos-btn" class="photo-btn send hidden">📡 Send to Mission Control</button>
         </div>
       </div>
+
+      <div id="viewfinder" class="hidden">
+        <span class="vf-corner tl"></span>
+        <span class="vf-corner tr"></span>
+        <span class="vf-corner bl"></span>
+        <span class="vf-corner br"></span>
+        <span class="vf-reticle"></span>
+        <span id="vf-arrow">⬆</span>
+        <div id="vf-hint"></div>
+      </div>
       <div id="cam-flash"></div>
 
       <div id="toast-area"></div>
@@ -119,6 +129,7 @@ export class Hud {
 
   showPhotoControls(show) {
     this.root.querySelector('#photo-dock').classList.toggle('hidden', !show);
+    if (!show) this.updatePhotoHint(null);
   }
 
   addPhoto({ thumb, caption, note }) {
@@ -148,6 +159,31 @@ export class Hud {
     f.classList.remove('flash');
     void f.offsetWidth;
     f.classList.add('flash');
+  }
+
+  // Live framing guidance for a photo objective (or null to hide it).
+  updatePhotoHint(state) {
+    const vf = this.root.querySelector('#viewfinder');
+    const btn = this.root.querySelector('#take-photo-btn');
+    if (!state) {
+      vf.classList.add('hidden');
+      vf.classList.remove('ready');
+      btn.classList.remove('ready');
+      return;
+    }
+    vf.classList.remove('hidden');
+    vf.classList.toggle('ready', state.ready);
+    btn.classList.toggle('ready', state.ready);
+    const hint = this.root.querySelector('#vf-hint');
+    hint.textContent = (state.ready ? '✅ ' : '🎯 ') + state.message;
+    // Arrow points toward the subject; hidden once framed.
+    const arrow = this.root.querySelector('#vf-arrow');
+    if (state.ready) {
+      arrow.classList.add('hidden');
+    } else {
+      arrow.classList.remove('hidden');
+      arrow.style.transform = `translate(-50%, -50%) rotate(${-state.angle}rad)`;
+    }
   }
   setTopBar(planet, index, total, roverName) {
     this.roverName = roverName;
@@ -347,7 +383,8 @@ export class Hud {
     });
   }
 
-  showIntro(planet, index, total) {
+  showIntro(planet, index, total, skip = false) {
+    if (skip) return Promise.resolve();
     const facts = planet.facts.map((f) => `<li>${f}</li>`).join('');
     const missions = planet.missions.map((m) => `<li>${MISSION_ICON[m.type] || '•'} ${m.label}</li>`).join('');
     return this._modal(

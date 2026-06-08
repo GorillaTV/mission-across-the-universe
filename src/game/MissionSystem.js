@@ -5,9 +5,13 @@ const SCAN_RADIUS = 7;
 const SCAN_TIME = 2.6; // seconds within range to finish a scan
 const DRILL_RADIUS = 3.2;
 const DRILL_TIME = 3.4; // seconds holding over a deposit
-const PHOTO_NEAR = 4;
-const PHOTO_FAR = 30;
-const PHOTO_AIM = 0.45; // dot threshold = generous view cone
+// Photo objectives frame a DISTANT landmark (e.g. a volcano on the horizon).
+// Landmarks sit ~85-140 units from the centre while the rover is clamped to a
+// ~70 unit radius, so the reachable distance to a landmark is roughly 60-210.
+// The range below must span that or the shot can never line up.
+const PHOTO_NEAR = 6;
+const PHOTO_FAR = 220;
+const PHOTO_AIM_ANGLE = 0.6; // radians (~34 deg) considered "facing the subject"
 
 // Runs the missions for a single planet: spawns collectibles + markers,
 // tracks progress and fires callbacks as objectives complete.
@@ -116,9 +120,27 @@ export class MissionSystem {
     return m.def;
   }
 
-  // True when any active photo objective is lined up (used to show the button).
-  photoReady() {
-    return this.missions.some((m) => m.type === 'photo' && !m.done && m.canPhoto);
+  // Live guidance for the HUD viewfinder. Returns the first active photo
+  // objective's framing state, or null when there is no photo mission left.
+  activePhotoState() {
+    const m = this.missions.find((mm) => mm.type === 'photo' && !mm.done);
+    if (!m || !m.marker) return null;
+    const subject = m.def.subject || 'the subject';
+    const status = m.photoStatus || 'far';
+    const MESSAGES = {
+      near: `Too close - back up to frame ${subject}`,
+      far: `Drive closer to ${subject}`,
+      turn_left: `Turn left toward ${subject}`,
+      turn_right: `Turn right toward ${subject}`,
+      ready: `${subject} framed - take the photo!`,
+    };
+    return {
+      subject,
+      status,
+      ready: status === 'ready',
+      angle: m.photoAngle || 0,
+      message: MESSAGES[status] || `Find ${subject}`,
+    };
   }
 
   _emitUpdate() {
@@ -188,18 +210,34 @@ export class MissionSystem {
         }
       } else if (m.type === 'photo') {
         if (m.marker.userData.flag) m.marker.userData.flag.rotation.y = Math.sin(this.t * 1.5) * 0.3;
-        // The photo is taken with a button (see takePhoto). Here we just decide
-        // whether the player is lined up well enough for the shutter to arm.
-        let ready = false;
-        if (dist > PHOTO_NEAR && dist < PHOTO_FAR) {
-          if (!roverForward) {
-            ready = true;
-          } else {
-            const inv = 1 / (dist || 1);
-            const dot = (dx * inv) * roverForward.x + (dz * inv) * roverForward.z;
-            ready = dot > PHOTO_AIM;
-          }
+        // Work out how the rover is lined up. We always compute the bearing to
+        // the subject so the HUD can point the player the right way, even when
+        // they are still far off.
+        let rel = 0;
+        if (roverForward) {
+          const targetAngle = Math.atan2(dx, dz);
+          const forwardAngle = Math.atan2(roverForward.x, roverForward.z);
+          rel = targetAngle - forwardAngle;
+          while (rel > Math.PI) rel -= Math.PI * 2;
+          while (rel < -Math.PI) rel += Math.PI * 2;
         }
+        let ready = false;
+        let status;
+        if (dist <= PHOTO_NEAR) {
+          status = 'near';
+        } else if (Math.abs(rel) > PHOTO_AIM_ANGLE) {
+          // Turning the rover RIGHT decreases its heading angle, so a target at
+          // a smaller (more negative) bearing than the rover is to the right.
+          status = rel > 0 ? 'turn_left' : 'turn_right';
+        } else if (dist >= PHOTO_FAR) {
+          status = 'far';
+        } else {
+          ready = true;
+          status = 'ready';
+        }
+        m.photoStatus = status;
+        m.photoAngle = rel;
+        m.photoDist = dist;
         if (ready !== m.canPhoto) {
           m.canPhoto = ready;
           changed = true;
