@@ -1,6 +1,6 @@
 // Data-driven configuration for every world in the game.
 // Journey order: Moon -> Mars -> Mercury -> Venus -> Jupiter -> Saturn ->
-// Uranus -> Neptune -> Pluto -> Sun. Each entry drives the look of the world,
+// Uranus -> Neptune -> Pluto. Each entry drives the look of the world,
 // the missions you complete there, and the real facts you learn.
 //
 // Mission types:
@@ -340,43 +340,6 @@ export const PLANETS = [
         subject: 'New Horizons marker',
         brief: 'Frame the marker left where the famous flyby imaged Pluto.',
         science: 'NASA\u2019s New Horizons gave us our first close-up of Pluto in 2015 after a 9-year, 5-billion-km journey across the solar system.' },
-    ],
-  },
-  {
-    id: 'sun',
-    name: 'The Sun',
-    texture: 'sun.jpg',
-    type: 'Star',
-    sky: 0x1a0500,
-    fog: 0x551500,
-    fogDensity: 0.02,
-    light: 0xffefb0,
-    lightIntensity: 2.6,
-    ambient: 0x884400,
-    groundTint: 0xff7a1a,
-    gravity: 274,
-    special: 'heat',
-    intro:
-      'The final mission \u2014 the star at the heart of it all. It is blisteringly ' +
-      'hot, so watch your HEAT gauge! Collect plasma to stay cool before you overheat.',
-    facts: [
-      'The Sun is a star \u2014 a giant ball of glowing plasma \u2014 and contains 99.8% of all mass in the solar system.',
-      'Its surface is about 5,500\u00b0C, and its core reaches 15 million\u00b0C.',
-      'Light from the Sun takes 8 minutes to reach Earth, travelling 150 million km.',
-    ],
-    missions: [
-      { id: 'sun-plasma', type: 'collect', item: 'plasma', count: 10, color: 0xffd24a,
-        label: 'Collect 10 plasma samples',
-        brief: 'Scoop super-hot plasma \u2014 each sample also cools your rover down.',
-        science: 'The Sun fuses 600 million tonnes of hydrogen into helium every second, releasing the energy that lights and warms the whole solar system.' },
-      { id: 'sun-scan', type: 'scan',
-        label: 'Scan an erupting solar flare',
-        brief: 'Hold near the flare just long enough to capture its burst of radiation.',
-        science: 'Solar flares and coronal mass ejections fling charged particles across space, sparking auroras \u2014 and sometimes knocking out satellites and power grids.' },
-      { id: 'sun-beacon', type: 'reach',
-        label: 'Reach the Parker Probe beacon',
-        brief: 'Race to the marker dropped by the fastest craft humans have built.',
-        science: 'NASA\u2019s Parker Solar Probe hit 692,000 km/h and is the first spacecraft to fly through the Sun\u2019s outer atmosphere, the corona.' },
     ],
   },
 ];
