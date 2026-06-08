@@ -1,6 +1,10 @@
 import { makeBeacon, makeScanTarget, makeDrillSite, makePhotoTarget } from './Collectible.js';
 
 const REACH_RADIUS = 4.5;
+// A "reach" beacon planted on a far landmark is clamped to this radius from the
+// centre so it lands at the foot of the feature, inside the rover's ~70 unit
+// drivable area (and on the mini-map).
+const REACH_LANDMARK_RADIUS = 62;
 const SCAN_RADIUS = 7;
 const SCAN_TIME = 2.6; // seconds within range to finish a scan
 const DRILL_RADIUS = 3.2;
@@ -12,6 +16,15 @@ const DRILL_TIME = 3.4; // seconds holding over a deposit
 const PHOTO_NEAR = 6;
 const PHOTO_FAR = 220;
 const PHOTO_AIM_ANGLE = 0.6; // radians (~34 deg) considered "facing the subject"
+
+// Pull a far-off landmark position in along its bearing so a beacon planted on
+// it sits within the rover's reachable radius. Closer landmarks are left alone.
+function reachableLandmark(landmark) {
+  const r = Math.hypot(landmark.x, landmark.z);
+  if (r <= REACH_LANDMARK_RADIUS || r === 0) return landmark;
+  const k = REACH_LANDMARK_RADIUS / r;
+  return { x: landmark.x * k, z: landmark.z * k };
+}
 
 // Runs the missions for a single planet: spawns collectibles + markers,
 // tracks progress and fires callbacks as objectives complete.
@@ -61,7 +74,12 @@ export class MissionSystem {
         this.field.spawn(m.def.item, m.target, m.def.color, this.bounds);
       } else if (m.type === 'reach') {
         const useLm = m.def.atLandmark && landmark;
-        const beacon = makeBeacon(0x44ffaa, this.bounds, terrain, useLm ? landmark : null);
+        // Landmarks sit far outside the drivable area (the rover is clamped to
+        // a ~70 unit radius), so a beacon placed at the landmark centre can
+        // never be reached. Pull it in along the same bearing to the foot of
+        // the feature, where the rover can actually drive up to it.
+        const beaconPos = useLm ? reachableLandmark(landmark) : null;
+        const beacon = makeBeacon(0x44ffaa, this.bounds, terrain, beaconPos);
         m.marker = beacon;
         this.scene.add(beacon);
         this.markers.push(beacon);
