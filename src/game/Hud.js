@@ -24,6 +24,7 @@ export class Hud {
         <div class="top-actions">
           <span id="rover-tag"></span>
           <button id="sound-btn" class="icon-btn" title="Mute / unmute sound">🔊</button>
+          <button id="googly-btn" class="icon-btn" title="Toggle googly eyes">👀</button>
           <button id="color-btn" class="icon-btn" title="Change rover colour">🎨</button>
           <button id="garage-btn" class="icon-btn" title="Rover garage & upgrades">🛠️</button>
         </div>
@@ -80,6 +81,7 @@ export class Hud {
     this.root.querySelector('#color-btn').onclick = () => this._toggleColorPanel();
     this.root.querySelector('#garage-btn').onclick = () => this._toggleGarage();
     this.root.querySelector('#sound-btn').onclick = () => this.callbacks.onToggleSound?.();
+    this.root.querySelector('#googly-btn').onclick = () => this.callbacks.onToggleGoogly?.();
     this._buildColorPanel();
     this._buildGaragePanel();
     this._wireDpad();
@@ -133,6 +135,13 @@ export class Hud {
     btn.textContent = muted ? '🔇' : '🔊';
     btn.classList.toggle('muted', muted);
     btn.title = muted ? 'Sound off (click to unmute)' : 'Sound on (click to mute)';
+  }
+
+  setGoogly(on) {
+    const btn = this.root.querySelector('#googly-btn');
+    if (!btn) return;
+    btn.classList.toggle('active', on);
+    btn.title = on ? 'Googly eyes on (click to remove)' : 'Googly eyes off (click to add)';
   }
 
   showPhotoControls(show) {

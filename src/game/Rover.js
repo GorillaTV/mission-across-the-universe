@@ -74,6 +74,10 @@ export class Rover {
     this.parts = {};
     this.shape = 'perseverance';
     this.color = 0xffce3a;
+    this.googly = localStorage.getItem('mau-googly') === '1';
+    this.eyes = null;
+    this._pupils = null;
+    this._prevSpeed = 0;
     this._built = false;
   }
 
@@ -104,6 +108,9 @@ export class Rover {
     this.wheelBaseR = spec.wheelR;
     this._buildHeadlights(spec);
     this._buildParts(spec);
+    this.eyes = null;
+    this._pupils = null;
+    if (this.googly) this._buildGooglyEyes(spec);
     this._built = true;
     this.applyUpgrades([]);
   }
@@ -356,6 +363,91 @@ export class Rover {
     if (this.bodyMat) this.bodyMat.color.setHex(hex);
   }
 
+  // --- Optional googly eyes: white domes with loose pupils that jiggle. ---
+  _buildGooglyEyes(spec) {
+    const [bw, , bl] = spec.body;
+    const by = this.body ? this.body.position.y : spec.wheelR + 0.4;
+    // Per-chassis placement: radius, vertical pos, front Z and centre offset.
+    const cfg = {
+      perseverance: { R: 0.22, y: by + 0.2, z: bl / 2 + 0.02, sep: 0.3 },
+      sojourner: { R: 0.16, y: by + 0.04, z: bl / 2 + 0.05, sep: 0.22 },
+      lrv: { R: 0.2, y: by + 0.52, z: bl * 0.34, sep: 0.42 },
+    }[this.shape] || { R: 0.2, y: by + 0.2, z: bl / 2, sep: 0.3 };
+
+    const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25, metalness: 0 });
+    const blackMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.2, metalness: 0.1 });
+
+    const eyes = new THREE.Group();
+    this._pupils = [];
+    for (const sx of [-1, 1]) {
+      const eye = new THREE.Group();
+      eye.position.set(sx * cfg.sep, cfg.y, cfg.z);
+
+      const sclera = new THREE.Mesh(new THREE.SphereGeometry(cfg.R, 20, 16), whiteMat);
+      sclera.castShadow = true;
+      eye.add(sclera);
+
+      const frontZ = cfg.R * 0.62;
+      const maxOff = cfg.R * 0.42;
+      const pupil = new THREE.Mesh(new THREE.SphereGeometry(cfg.R * 0.5, 16, 12), blackMat);
+      pupil.position.set(0, -maxOff * 0.65, frontZ);
+      eye.add(pupil);
+
+      eye.userData = {
+        pupil, frontZ, maxOff,
+        pos: new THREE.Vector2(0, -maxOff * 0.65),
+        vel: new THREE.Vector2(0, 0),
+      };
+      eyes.add(eye);
+      this._pupils.push(eye);
+    }
+    this.group.add(eyes);
+    this.eyes = eyes;
+  }
+
+  _disposeEyes() {
+    if (!this.eyes) return;
+    this.eyes.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) o.material.dispose();
+    });
+    this.group.remove(this.eyes);
+    this.eyes = null;
+    this._pupils = null;
+  }
+
+  setGoogly(on) {
+    this.googly = !!on;
+    localStorage.setItem('mau-googly', this.googly ? '1' : '0');
+    if (!this._built) return this.googly;
+    if (this.googly && !this.eyes) this._buildGooglyEyes(SHAPES[this.shape]);
+    else if (!this.googly && this.eyes) this._disposeEyes();
+    return this.googly;
+  }
+
+  _animateGoogly(dt, turnInput) {
+    if (!this._pupils) return;
+    const accel = (this.speed - this._prevSpeed) / Math.max(dt, 0.0001);
+    this._prevSpeed = this.speed;
+    const stiffness = 60;
+    const damping = Math.pow(0.0025, dt);
+    for (const eye of this._pupils) {
+      const ud = eye.userData;
+      const m = ud.maxOff;
+      // Pupils hang low (gravity), swing sideways on turns, bounce on accel.
+      const tx = THREE.MathUtils.clamp(-turnInput * 0.7, -1, 1) * m * 0.8;
+      const ty = -m * 0.65 + THREE.MathUtils.clamp(-accel * 0.03, -m * 0.6, m * 0.6);
+      ud.vel.x += (tx - ud.pos.x) * stiffness * dt;
+      ud.vel.y += (ty - ud.pos.y) * stiffness * dt;
+      ud.vel.multiplyScalar(damping);
+      ud.pos.x += ud.vel.x * dt;
+      ud.pos.y += ud.vel.y * dt;
+      const len = Math.hypot(ud.pos.x, ud.pos.y);
+      if (len > m) ud.pos.multiplyScalar(m / len);
+      ud.pupil.position.set(ud.pos.x, ud.pos.y, ud.frontZ);
+    }
+  }
+
   applyUpgrades(unlockedIds) {
     const set = new Set(unlockedIds);
     for (const key of Object.keys(this.parts)) {
@@ -454,6 +546,8 @@ export class Rover {
       const tire = w.userData.tire;
       if (tire) tire.rotation.x += spin; else w.rotation.x += spin;
     }
+
+    if (this.eyes) this._animateGoogly(dt, turnInput);
 
     this._sync(dt);
   }

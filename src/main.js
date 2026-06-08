@@ -73,6 +73,11 @@ const hud = new Hud(document.getElementById('hud'), {
     hud.setSoundMuted(muted);
     return muted;
   },
+  onToggleGoogly: () => {
+    const on = rover.setGoogly(!rover.googly);
+    hud.setGoogly(on);
+    return on;
+  },
 });
 
 // ---- Audio (real NASA "Sounds from Beyond" recordings) ----
@@ -362,6 +367,7 @@ async function boot() {
   // The Launch click is a user gesture, so this is our chance to unlock audio.
   sound.unlock();
   rover.configure(config);
+  hud.setGoogly(rover.googly);
   applyUpgrades();
   loop();
   await startPlanet(0);
