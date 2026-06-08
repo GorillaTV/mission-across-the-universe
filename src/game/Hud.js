@@ -51,8 +51,6 @@ export class Hud {
         <span class="dpad-hub"></span>
       </div>
 
-      <div id="controls-hint">WASD / Arrows or the on-screen pad to drive</div>
-
       <div id="photo-dock" class="hidden">
         <div id="photo-roll"></div>
         <div class="photo-actions">
