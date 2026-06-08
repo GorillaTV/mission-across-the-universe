@@ -1,0 +1,15 @@
+Texture Credits
+===============
+
+Planet and star surface maps are by Solar System Scope
+(https://www.solarsystemscope.com/textures/) and are licensed under
+Creative Commons Attribution 4.0 International (CC BY 4.0).
+Files: mercury, venus, moon, mars, jupiter, saturn, uranus, neptune,
+sun, earth, stars (Milky Way).
+
+Pluto map: NASA / Johns Hopkins University Applied Physics Laboratory /
+Southwest Research Institute (New Horizons), public domain, via Wikimedia
+Commons ("Pluto in True Color - High-Res").
+
+These textures are used for educational purposes in "Mission Across the
+Universe".

@@ -1,0 +1,18 @@
+{
+  "name": "mission-across-the-universe",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A 3D educational space game where you drive a rover across the solar system completing missions.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.0.7"
+  },
+  "dependencies": {
+    "three": "^0.171.0"
+  }
+}
