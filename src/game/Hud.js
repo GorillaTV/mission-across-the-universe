@@ -23,6 +23,7 @@ export class Hud {
         </div>
         <div class="top-actions">
           <span id="rover-tag"></span>
+          <button id="sound-btn" class="icon-btn" title="Mute / unmute sound">🔊</button>
           <button id="color-btn" class="icon-btn" title="Change rover colour">🎨</button>
           <button id="garage-btn" class="icon-btn" title="Rover garage & upgrades">🛠️</button>
         </div>
@@ -78,6 +79,7 @@ export class Hud {
 
     this.root.querySelector('#color-btn').onclick = () => this._toggleColorPanel();
     this.root.querySelector('#garage-btn').onclick = () => this._toggleGarage();
+    this.root.querySelector('#sound-btn').onclick = () => this.callbacks.onToggleSound?.();
     this._buildColorPanel();
     this._buildGaragePanel();
     this._wireDpad();
@@ -123,6 +125,14 @@ export class Hud {
     this.root.querySelector('#take-photo-btn').onclick = () => this.callbacks.onTakePhoto?.();
     this.root.querySelector('#send-photos-btn').onclick = () =>
       this.callbacks.onSendPhotos?.(this.photos.slice());
+  }
+
+  setSoundMuted(muted) {
+    const btn = this.root.querySelector('#sound-btn');
+    if (!btn) return;
+    btn.textContent = muted ? '🔇' : '🔊';
+    btn.classList.toggle('muted', muted);
+    btn.title = muted ? 'Sound off (click to unmute)' : 'Sound on (click to mute)';
   }
 
   showPhotoControls(show) {

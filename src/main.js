@@ -8,6 +8,7 @@ import { Tracks } from './game/Tracks.js';
 import { Hud } from './game/Hud.js';
 import { runRoverBuilder } from './game/RoverBuilder.js';
 import { travel } from './game/TravelSequence.js';
+import { SoundManager } from './game/SoundManager.js';
 import { getUnlockedUpgrades, newlyUnlocked, aggregateStats, aggregateEffects } from './game/Upgrades.js';
 
 // ---- Renderer / scene / camera ----
@@ -67,7 +68,21 @@ const hud = new Hud(document.getElementById('hud'), {
   onDrive: (dir, on) => { keys[dir] = on; },
   onTakePhoto: () => takePhotoAction(),
   onSendPhotos: (photos) => sendPhotos(photos),
+  onToggleSound: () => {
+    const muted = sound.toggleMuted();
+    hud.setSoundMuted(muted);
+    return muted;
+  },
 });
+
+// ---- Audio (real NASA "Sounds from Beyond" recordings) ----
+const sound = new SoundManager();
+hud.setSoundMuted(sound.muted);
+// Browsers only allow audio after a user gesture; unlock on the first one.
+const unlockAudio = () => sound.unlock();
+addEventListener('pointerdown', unlockAudio, { once: true });
+addEventListener('keydown', unlockAudio, { once: true });
+addEventListener('touchstart', unlockAudio, { once: true, passive: true });
 
 // ---- Photo capture (rover camera) ----
 const thumbCanvas = document.createElement('canvas');
@@ -110,6 +125,7 @@ function takePhotoAction() {
   }
   hud.addPhoto({ thumb, caption, note });
   hud.cameraFlash();
+  sound.playLaser();
 }
 
 function sendPhotos(photos) {
@@ -154,6 +170,7 @@ function onMissionComplete(def) {
   const after = state.completedMissions;
 
   hud.toast('🛰️ Mission complete!', def.science || def.fact, 'fact');
+  sound.chime();
 
   const unlocked = newlyUnlocked(before, after);
   applyUpgrades();
@@ -203,6 +220,11 @@ async function startPlanet(index, skipIntro = false) {
 
   hud.setTopBar(planet, index, PLANETS.length, rover.name);
 
+  // Switch the ambient bed to this world's real NASA recording and surface a
+  // one-time credit so players know what they're hearing.
+  const credit = sound.setPlanet(planet);
+  if (credit) hud.toast('Now playing', credit, 'fact');
+
   await hud.showIntro(planet, index, PLANETS.length, skipIntro);
   state.phase = 'playing';
   hud.showPhotoControls(true);
@@ -235,11 +257,14 @@ async function onPlanetCleared() {
   await hud.showCleared(planet, nextName);
 
   if (isLast) {
+    sound.fanfare();
     await hud.showWin(state.completedMissions, PLANETS.length);
     location.reload();
     return;
   }
 
+  sound.duckAmbient();
+  sound.whoosh();
   await travel(planet.name, nextName);
   state.planetIndex += 1;
   clearing = false;
@@ -309,13 +334,17 @@ function loop() {
     const frozen = now < state.frozenUntil;
     rover.update(dt, frozen ? noKeys : keys);
     tracks.update(rover.position, rover.forwardVector());
-    field.update(dt, rover.position, clock.t);
+    const collected = field.update(dt, rover.position, clock.t);
+    if (collected) sound.collect();
     missions.update(dt, rover.position, rover.forwardVector());
     hud.updatePhotoHint(missions.activePhotoState());
     updateHeat(dt);
     updateMinimap(dt);
+    const moving = !frozen && (keys.forward || keys.back || keys.left || keys.right);
+    sound.setDriving(moving);
   } else {
     rover.update(dt, noKeys);
+    sound.setDriving(false);
   }
 
   world.update(dt);
@@ -330,6 +359,8 @@ function loop() {
 // ---- Boot ----
 async function boot() {
   const config = await runRoverBuilder();
+  // The Launch click is a user gesture, so this is our chance to unlock audio.
+  sound.unlock();
   rover.configure(config);
   applyUpgrades();
   loop();

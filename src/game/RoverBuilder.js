@@ -18,6 +18,12 @@ export function runRoverBuilder() {
 
     const root = document.createElement('div');
     root.className = 'builder';
+    // Real NASA imagery: the multi-coloured spiral galaxy M83 (Southern
+    // Pinwheel). BASE_URL keeps the path correct on both the custom domain and
+    // GitHub project-pages deployments.
+    const galaxy = `${import.meta.env.BASE_URL}images/galaxy-m83.jpg`;
+    root.style.backgroundImage =
+      `linear-gradient(rgba(3,5,12,0.62), rgba(3,5,12,0.82)), url('${galaxy}')`;
     root.innerHTML = `
       <div class="builder-card">
         <h1 class="title">Mission Across the Universe</h1>
@@ -42,6 +48,7 @@ export function runRoverBuilder() {
         <button id="launch-btn" class="primary-btn">🚀 Launch Mission</button>
         <p class="builder-tip">You can recolour and upgrade your rover during the game.</p>
       </div>
+      <p class="builder-credit">Background: Galaxy M83 · NASA / Hubble Space Telescope</p>
     `;
     document.body.appendChild(root);
 
