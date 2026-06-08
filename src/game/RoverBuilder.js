@@ -1,4 +1,5 @@
 import { ROVER_SHAPES } from './Rover.js';
+import { renderRoverThumbnails } from './roverThumbnails.js';
 
 const PALETTE = [
   0xffce3a, 0xff5a3c, 0x4ad6ff, 0x6bff8a, 0xb06bff,
@@ -11,7 +12,7 @@ const NAME_IDEAS = ['Pathfinder', 'Stardust', 'Nomad', 'Comet', 'Pioneer', 'Voya
 // Resolves with { shape, name, color }.
 export function runRoverBuilder() {
   return new Promise((resolve) => {
-    let shape = 'explorer';
+    let shape = 'perseverance';
     let color = PALETTE[0];
     const suggested = NAME_IDEAS[Math.floor(Math.random() * NAME_IDEAS.length)];
 
@@ -44,13 +45,17 @@ export function runRoverBuilder() {
     `;
     document.body.appendChild(root);
 
-    // Shape cards
+    // Shape cards (with real 3D portraits of each rover)
+    const thumbs = renderRoverThumbnails(ROVER_SHAPES);
     const shapeRow = root.querySelector('.shape-row');
     const shapeCards = {};
     for (const s of ROVER_SHAPES) {
       const card = document.createElement('button');
       card.className = 'shape-card';
-      card.innerHTML = `<div class="shape-icon shape-${s.id}"></div><div class="shape-name">${s.name}</div><div class="shape-desc">${s.desc}</div>`;
+      const icon = thumbs[s.id]
+        ? `<img class="shape-photo" src="${thumbs[s.id]}" alt="${s.name}" />`
+        : '';
+      card.innerHTML = `<div class="shape-icon">${icon}</div><div class="shape-name">${s.name}</div><div class="shape-desc">${s.desc}</div>`;
       card.onclick = () => {
         shape = s.id;
         for (const c of Object.values(shapeCards)) c.classList.remove('selected');
@@ -59,7 +64,7 @@ export function runRoverBuilder() {
       shapeRow.appendChild(card);
       shapeCards[s.id] = card;
     }
-    shapeCards.explorer.classList.add('selected');
+    shapeCards.perseverance.classList.add('selected');
 
     // Swatches
     const swatchRow = root.querySelector('.swatch-row');

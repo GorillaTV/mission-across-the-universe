@@ -3,9 +3,14 @@
 // Uranus -> Neptune -> Pluto -> Sun. Each entry drives the look of the world,
 // the missions you complete there, and the real facts you learn.
 //
-// Colours are plain hex numbers used by THREE.Color.
-// `gravity` is surface gravity in m/s^2 (Earth = 9.8) and is used both for the
-// rover "feel" and for an on-screen fact.
+// Mission types:
+//   collect - gather N items of `item`
+//   reach   - drive to a beacon (set atLandmark to put it on the big landmark)
+//   scan    - hold the rover near a feature to scan it
+//   drill   - hold over a deposit pad while the drill bores down
+//   photo   - line the landmark up in view from a distance and hold steady
+// Each mission has a short `brief` (the story / why) and a `science` payoff
+// shown when you complete it.
 
 export const PLANETS = [
   {
@@ -22,23 +27,26 @@ export const PLANETS = [
     groundTint: 0xbfbfbf,
     gravity: 1.6,
     intro:
-      "Earth's only natural satellite. No air, no weather — just 4.5 billion " +
+      "Earth's only natural satellite. No air, no weather \u2014 just 4.5 billion " +
       'years of dust and craters. A great place to test your new rover!',
     facts: [
       'The Moon has no atmosphere, so footprints from 1969 are still there today.',
-      'Gravity is only 1/6th of Earth\u2019s — you could jump six times higher.',
-      'Those grey plains are called "maria" — Latin for seas — but they are dried lava, not water.',
+      'Gravity is only 1/6th of Earth\u2019s \u2014 you could jump six times higher.',
+      'Those grey plains are called "maria" \u2014 Latin for seas \u2014 but they are dried lava, not water.',
     ],
     missions: [
       { id: 'moon-rocks', type: 'collect', item: 'rock', count: 8, color: 0x9a9a9a,
         label: 'Collect 8 Moon rocks',
-        fact: 'Apollo astronauts brought back 382 kg of Moon rocks. They taught us the Moon formed from debris after a Mars-sized world hit Earth.' },
-      { id: 'moon-beacon', type: 'reach',
-        label: 'Drive to the landing beacon',
-        fact: 'Lunar dust ("regolith") is razor-sharp because there is no wind or water to smooth it. It wrecks machinery and spacesuits.' },
+        brief: 'Geologists want fresh samples from the lunar maria to date the lava flows.',
+        science: 'Apollo astronauts brought back 382 kg of Moon rocks. They taught us the Moon formed from debris after a Mars-sized world hit the young Earth.' },
       { id: 'moon-scan', type: 'scan',
-        label: 'Scan the crater rim',
-        fact: 'Deep craters at the Moon\u2019s poles never see sunlight and hold frozen water — future astronauts could drink and make fuel from it.' },
+        label: 'Scan the shadowed crater rim',
+        brief: 'Park by the crater wall and let the spectrometer read the icy shadows.',
+        science: 'Deep craters at the Moon\u2019s poles never see sunlight and trap frozen water \u2014 future astronauts could drink it and split it into rocket fuel.' },
+      { id: 'moon-beacon', type: 'reach',
+        label: 'Reach the Apollo landing beacon',
+        brief: 'Retrace humanity\u2019s first steps and recover the old landing marker.',
+        science: 'Lunar dust ("regolith") is razor-sharp because there is no wind or water to smooth it. It wrecked Apollo seals, spacesuits and machinery.' },
     ],
   },
   {
@@ -58,20 +66,23 @@ export const PLANETS = [
       'The Red Planet. Cold, rusty deserts, giant volcanoes and dusty skies. ' +
       'Real rovers like Curiosity and Perseverance are exploring here right now.',
     facts: [
-      'Mars looks red because its soil is full of iron oxide — literally rust.',
+      'Mars looks red because its soil is full of iron oxide \u2014 literally rust.',
       'It hosts Olympus Mons, the tallest volcano in the solar system, 3x the height of Mt Everest.',
-      'A day on Mars is 24h 37m — almost the same as Earth.',
+      'A day on Mars is 24h 37m \u2014 almost the same as Earth.',
     ],
     missions: [
-      { id: 'mars-rocks', type: 'collect', item: 'rock', count: 10, color: 0xb04a25,
-        label: 'Collect 10 rock samples',
-        fact: 'Perseverance is storing rock samples in tubes for a future mission to bring back to Earth — the first Mars sample return.' },
-      { id: 'mars-ice', type: 'collect', item: 'ice', count: 5, color: 0xbfe3ff,
-        label: 'Collect 5 buried ice cores',
-        fact: 'Mars has huge amounts of water ice at its poles and underground. If melted, it could cover the planet in an ocean metres deep.' },
-      { id: 'mars-beacon', type: 'reach',
-        label: 'Drive to the canyon beacon',
-        fact: 'Valles Marineris is a canyon system as long as the United States and four times deeper than the Grand Canyon.' },
+      { id: 'mars-core', type: 'drill',
+        label: 'Drill a rock core in the crater floor',
+        brief: 'Bore into the ancient lakebed and cache a core tube for sample return.',
+        science: 'Perseverance seals rock cores in metal tubes and drops them on the surface for a future mission to fly back to Earth \u2014 the first Mars sample return.' },
+      { id: 'mars-ice', type: 'collect', item: 'ice', count: 6, color: 0xbfe3ff,
+        label: 'Collect 6 buried ice cores',
+        brief: 'Subsurface radar pinged buried ice. Dig out samples before they sublimate.',
+        science: 'Mars hides enormous amounts of water ice underground and at its poles. Melted, it could cover the whole planet in an ocean metres deep.' },
+      { id: 'mars-volcano', type: 'photo', atLandmark: true,
+        label: 'Photograph the giant volcano',
+        brief: 'Back off and frame the towering shield volcano on the horizon for orbit.',
+        science: 'Olympus Mons is 22 km tall and as wide as France. Low gravity and a still crust let Martian volcanoes grow into giants.' },
     ],
   },
   {
@@ -91,20 +102,23 @@ export const PLANETS = [
       'The smallest planet and the closest to the Sun. Scorching by day, ' +
       'freezing by night, and covered in craters like the Moon.',
     facts: [
-      'Mercury swings from +430\u00b0C in sunlight to \u2212180\u00b0C in shadow — the biggest temperature range of any planet.',
+      'Mercury swings from +430\u00b0C in sunlight to \u2212180\u00b0C in shadow \u2014 the biggest temperature range of any planet.',
       'It has almost no atmosphere to trap heat, so nights are brutally cold.',
-      'A year on Mercury is just 88 Earth days — it races around the Sun.',
+      'A year on Mercury is just 88 Earth days \u2014 it races around the Sun.',
     ],
     missions: [
       { id: 'merc-metal', type: 'collect', item: 'metal', count: 9, color: 0xb8a07a,
         label: 'Collect 9 metal-rich rocks',
-        fact: 'Mercury has a giant iron core that fills about 60% of its volume — it is the most metallic planet.' },
+        brief: 'Sample the iron-laden crust to weigh Mercury\u2019s oversized core.',
+        science: 'Mercury\u2019s giant iron core fills about 60% of its volume \u2014 it is the most metallic planet, perhaps a survivor of a colossal early collision.' },
       { id: 'merc-scan', type: 'scan',
-        label: 'Scan a shadowed crater',
-        fact: 'Even this close to the Sun, permanently shadowed craters near Mercury\u2019s poles contain frozen water ice.' },
-      { id: 'merc-beacon', type: 'reach',
-        label: 'Reach the cliff (scarp) beacon',
-        fact: 'Mercury is shrinking! As its core cools it contracts, wrinkling the surface into cliffs called "scarps".' },
+        label: 'Scan a permanently shadowed crater',
+        brief: 'Even here, dark crater floors may hide ice. Hold position and scan.',
+        science: 'This close to the Sun, permanently shadowed polar craters still hold frozen water ice that never gets warmed by sunlight.' },
+      { id: 'merc-scarp', type: 'reach', atLandmark: true,
+        label: 'Climb to the giant cliff (scarp)',
+        brief: 'Drive up the kilometres-high wrinkle ridge to plant a survey beacon.',
+        science: 'Mercury is shrinking! As its iron core slowly cools it contracts, buckling the crust into cliffs called "lobate scarps".' },
     ],
   },
   {
@@ -124,20 +138,23 @@ export const PLANETS = [
       'Earth\u2019s "evil twin". Similar in size, but wrapped in thick toxic ' +
       'clouds and hot enough to melt lead. Your rover\u2019s shielding will be tested!',
     facts: [
-      'Venus is the hottest planet at about 465\u00b0C — hotter than Mercury — because of a runaway greenhouse effect.',
+      'Venus is the hottest planet at about 465\u00b0C \u2014 hotter than Mercury \u2014 because of a runaway greenhouse effect.',
       'Its air is so thick the surface pressure is like being 900 m underwater on Earth.',
       'Venus spins backwards, and one day there is longer than its whole year.',
     ],
     missions: [
       { id: 'venus-rocks', type: 'collect', item: 'rock', count: 10, color: 0xc98f3a,
-        label: 'Collect 10 volcanic rocks',
-        fact: 'Venus is covered in volcanoes — more than any other planet — and some may still be active today.' },
-      { id: 'venus-scan', type: 'scan',
-        label: 'Scan the lava plain',
-        fact: 'Venus\u2019s surface is young and smooth because lava floods repeatedly repave the whole planet.' },
+        label: 'Collect 10 fresh volcanic rocks',
+        brief: 'Grab basalt from a recent lava flow before the heat warps your tools.',
+        science: 'Venus has more volcanoes than any other planet, and recent data shows some are still erupting and reshaping the surface today.' },
+      { id: 'venus-volcano', type: 'photo', atLandmark: true,
+        label: 'Photograph the volcanic dome',
+        brief: 'Frame the broad pancake volcano through the haze for the orbiter.',
+        science: 'Thick atmosphere and high pressure squeeze Venus\u2019s lava into wide, flat "pancake domes" found nowhere else in the solar system.' },
       { id: 'venus-beacon', type: 'reach',
-        label: 'Drive to the probe beacon',
-        fact: 'The longest any lander survived on Venus was about 2 hours (Soviet Venera 13) before the heat and pressure destroyed it.' },
+        label: 'Reach the crushed lander beacon',
+        brief: 'Recover data from a probe that died on the surface decades ago.',
+        science: 'The longest any lander survived on Venus was about 2 hours (Soviet Venera 13) before the heat and pressure destroyed it.' },
     ],
   },
   {
@@ -154,23 +171,26 @@ export const PLANETS = [
     groundTint: 0xd8b48c,
     gravity: 24.8,
     intro:
-      'The king of the planets — a giant ball of gas with no solid ground. ' +
+      'The king of the planets \u2014 a giant ball of gas with no solid ground. ' +
       'You\u2019re driving a floating research platform above its swirling clouds.',
     facts: [
       'Jupiter is so big that all the other planets could fit inside it.',
-      'It has no real surface — it is mostly hydrogen and helium gas that thickens into liquid.',
+      'It has no real surface \u2014 it is mostly hydrogen and helium gas that thickens into liquid.',
       'The Great Red Spot is a storm bigger than Earth that has raged for centuries.',
     ],
     missions: [
       { id: 'jup-gas', type: 'collect', item: 'gas', count: 12, color: 0xe8c89a,
-        label: 'Collect 12 cloud-gas samples',
-        fact: 'Jupiter is mostly hydrogen and helium — the same stuff as the Sun. It almost became a star itself.' },
+        label: 'Scoop 12 cloud-gas samples',
+        brief: 'Skim the cloud tops to sample the planet\u2019s primordial atmosphere.',
+        science: 'Jupiter is mostly hydrogen and helium \u2014 the same stuff as the Sun. With a bit more mass it could have become a second star.' },
       { id: 'jup-scan', type: 'scan',
-        label: 'Scan the Great Red Spot',
-        fact: 'Winds in the Great Red Spot reach 600 km/h — faster than any storm on Earth.' },
+        label: 'Scan the Great Red Spot\u2019s edge',
+        brief: 'Hold steady at the storm\u2019s rim and measure its ferocious winds.',
+        science: 'Winds in the Great Red Spot reach 600 km/h. The storm is wider than Earth and has howled for at least 150 years.' },
       { id: 'jup-beacon', type: 'reach',
-        label: 'Reach the storm-edge beacon',
-        fact: 'Jupiter has at least 95 moons. Europa, one of them, hides a salty ocean that might support life.' },
+        label: 'Reach the Europa relay beacon',
+        brief: 'Position the platform to relay signals from the icy moon Europa.',
+        science: 'Jupiter has 95+ moons. Europa hides a salty ocean beneath its ice that holds more water than all of Earth\u2019s seas \u2014 a top place to hunt for life.' },
     ],
   },
   {
@@ -188,22 +208,25 @@ export const PLANETS = [
     gravity: 10.4,
     intro:
       'The jewel of the solar system, famous for its dazzling rings. ' +
-      'Another gas giant — explore from a platform among the clouds.',
+      'Another gas giant \u2014 explore from a platform among the clouds.',
     facts: [
       'Saturn\u2019s rings are made of billions of chunks of ice and rock, from dust grains to house-sized boulders.',
       'Saturn is so light it would float in a giant bathtub of water.',
-      'Its rings are wide but incredibly thin — only about 10 metres thick in places.',
+      'Its rings are wide but incredibly thin \u2014 only about 10 metres thick in places.',
     ],
     missions: [
       { id: 'sat-ice', type: 'collect', item: 'ice', count: 12, color: 0xdff0ff,
         label: 'Collect 12 ring-ice chunks',
-        fact: 'Saturn\u2019s rings are 99% water ice, which is why they shine so brightly in sunlight.' },
+        brief: 'Net icy debris drifting down from the rings to study their make-up.',
+        science: 'Saturn\u2019s rings are 99% water ice, which is why they shine so brightly. They may be remnants of a shattered moon or comet.' },
       { id: 'sat-scan', type: 'scan',
-        label: 'Scan the hexagon storm',
-        fact: 'A bizarre six-sided jet stream — the "hexagon" — circles Saturn\u2019s north pole, wide enough to fit four Earths.' },
+        label: 'Scan the north-pole hexagon storm',
+        brief: 'Align with the strange six-sided jet stream and record its shape.',
+        science: 'A bizarre six-sided jet stream \u2014 the "hexagon" \u2014 circles Saturn\u2019s north pole, wide enough to fit four Earths inside it.' },
       { id: 'sat-beacon', type: 'reach',
-        label: 'Drive to the ring-shadow beacon',
-        fact: 'Saturn has over 140 moons. Titan has lakes of liquid methane and a thick orange atmosphere.' },
+        label: 'Reach the Titan relay beacon',
+        brief: 'Set up a link toward Titan, Saturn\u2019s strange smog-wrapped moon.',
+        science: 'Titan has rivers and lakes of liquid methane, a thick orange atmosphere, and is the only moon with weather and a proper surface to land on.' },
     ],
   },
   {
@@ -228,15 +251,18 @@ export const PLANETS = [
       'It is the coldest planet, dropping to around \u2212224\u00b0C.',
     ],
     missions: [
-      { id: 'ura-ice', type: 'collect', item: 'ice', count: 11, color: 0xc4f5f5,
-        label: 'Collect 11 methane-ice samples',
-        fact: 'Uranus is called an "ice giant" because below its clouds is a hot, dense slush of water, ammonia and methane.' },
-      { id: 'ura-scan', type: 'scan',
-        label: 'Scan the tilted pole',
-        fact: 'Because Uranus is tipped on its side, each pole gets 42 years of sunlight followed by 42 years of darkness.' },
-      { id: 'ura-beacon', type: 'reach',
-        label: 'Reach the faint-ring beacon',
-        fact: 'Uranus has 13 dark, narrow rings and was the first planet discovered with a telescope, in 1781.' },
+      { id: 'ura-ice', type: 'collect', item: 'ice', count: 10, color: 0xc4f5f5,
+        label: 'Collect 10 methane-ice samples',
+        brief: 'Sample the frozen slush that gives this world its eerie colour.',
+        science: 'Uranus is an "ice giant": below its clouds is a hot, dense slush of water, ammonia and methane. Methane gas is what paints it blue-green.' },
+      { id: 'ura-drill', type: 'drill',
+        label: 'Drill into the frozen crust',
+        brief: 'Bore through the surface ice to read temperatures far below.',
+        science: 'Because Uranus is tipped on its side, each pole gets 42 years of constant sunlight followed by 42 years of total darkness.' },
+      { id: 'ura-mountain', type: 'photo', atLandmark: true,
+        label: 'Photograph the ice peak',
+        brief: 'Frame the towering ridge of ice for the survey archive.',
+        science: 'Uranus has 13 faint, dark rings and 28 known moons, all named after characters from Shakespeare and Alexander Pope.' },
     ],
   },
   {
@@ -253,23 +279,26 @@ export const PLANETS = [
     groundTint: 0x3a5bd9,
     gravity: 11.2,
     intro:
-      'The most distant planet — a deep blue, windswept ice giant on the ' +
+      'The most distant planet \u2014 a deep blue, windswept ice giant on the ' +
       'cold edge of the solar system, 30 times farther from the Sun than Earth.',
     facts: [
       'Neptune has the fastest winds in the solar system, over 2,000 km/h.',
       'It is so far away that sunlight there is 900 times dimmer than on Earth.',
-      'Neptune was found using maths — astronomers predicted it before they saw it.',
+      'Neptune was found using maths \u2014 astronomers predicted it before they saw it.',
     ],
     missions: [
-      { id: 'nep-ice', type: 'collect', item: 'ice', count: 12, color: 0xbcd0ff,
-        label: 'Collect 12 deep-ice samples',
-        fact: 'Deep inside Neptune the pressure may turn carbon into diamonds — scientists think it could rain diamonds there.' },
-      { id: 'nep-scan', type: 'scan',
-        label: 'Scan the Great Dark Spot',
-        fact: 'Neptune had a storm the size of Earth called the Great Dark Spot — but unlike Jupiter\u2019s, it vanished and reappeared elsewhere.' },
+      { id: 'nep-ice', type: 'collect', item: 'ice', count: 11, color: 0xbcd0ff,
+        label: 'Collect 11 deep-ice samples',
+        brief: 'Gather pressurised ice to test the "diamond rain" idea.',
+        science: 'Deep inside Neptune crushing pressure may squeeze carbon into diamonds \u2014 scientists think it could literally rain diamonds there.' },
+      { id: 'nep-mountain', type: 'photo', atLandmark: true,
+        label: 'Photograph the ice ridge',
+        brief: 'Line up the distant ridge under the dim, faraway Sun.',
+        science: 'At Neptune the Sun looks like a bright star. Voyager 2 is the only spacecraft ever to visit, flying past in 1989.' },
       { id: 'nep-beacon', type: 'reach',
-        label: 'Drive to the windstorm beacon',
-        fact: 'Voyager 2 is the only spacecraft ever to visit Neptune, flying past it in 1989.' },
+        label: 'Reach the windstorm beacon',
+        brief: 'Push into the gale to recover a probe lost in the fastest winds known.',
+        science: 'Neptune\u2019s winds top 2,000 km/h \u2014 five times stronger than the worst hurricanes on Earth \u2014 despite getting almost no heat from the Sun.' },
     ],
   },
   {
@@ -296,13 +325,16 @@ export const PLANETS = [
     missions: [
       { id: 'plu-ice', type: 'collect', item: 'ice', count: 9, color: 0xeae0d0,
         label: 'Collect 9 nitrogen-ice samples',
-        fact: 'Pluto\u2019s surface ice is mostly frozen nitrogen, methane and carbon monoxide — gases that are air on Earth.' },
-      { id: 'plu-scan', type: 'scan',
-        label: 'Scan the heart glacier',
-        fact: 'The "heart" of Pluto has glaciers that flow and churn, resurfacing the area so it has almost no craters.' },
-      { id: 'plu-beacon', type: 'reach',
-        label: 'Reach the New Horizons beacon',
-        fact: 'NASA\u2019s New Horizons gave us our first close-up of Pluto in 2015 after a 9-year, 5-billion-km journey.' },
+        brief: 'Scoop frozen "air" from the glacier \u2014 gases that are sky on Earth.',
+        science: 'Pluto\u2019s surface ice is mostly frozen nitrogen, methane and carbon monoxide \u2014 gases that make up the air we breathe on Earth.' },
+      { id: 'plu-heart', type: 'reach', atLandmark: true,
+        label: 'Cross onto the heart glacier',
+        brief: 'Drive up onto the famous heart-shaped plain of nitrogen ice.',
+        science: 'The "heart" of Pluto has glaciers that slowly churn and flow, resurfacing the area so smoothly it has almost no craters.' },
+      { id: 'plu-beacon', type: 'photo',
+        label: 'Photograph the New Horizons marker',
+        brief: 'Frame the marker left where the famous flyby imaged Pluto.',
+        science: 'NASA\u2019s New Horizons gave us our first close-up of Pluto in 2015 after a 9-year, 5-billion-km journey across the solar system.' },
     ],
   },
   {
@@ -320,24 +352,26 @@ export const PLANETS = [
     gravity: 274,
     special: 'heat',
     intro:
-      'The final mission — the star at the heart of it all. It is blisteringly ' +
-      'hot, so watch your HEAT gauge! Park in shade to cool down and grab plasma ' +
-      'samples before you overheat.',
+      'The final mission \u2014 the star at the heart of it all. It is blisteringly ' +
+      'hot, so watch your HEAT gauge! Collect plasma to stay cool before you overheat.',
     facts: [
-      'The Sun is a star — a giant ball of glowing plasma — and contains 99.8% of all mass in the solar system.',
+      'The Sun is a star \u2014 a giant ball of glowing plasma \u2014 and contains 99.8% of all mass in the solar system.',
       'Its surface is about 5,500\u00b0C, and its core reaches 15 million\u00b0C.',
       'Light from the Sun takes 8 minutes to reach Earth, travelling 150 million km.',
     ],
     missions: [
       { id: 'sun-plasma', type: 'collect', item: 'plasma', count: 10, color: 0xffd24a,
         label: 'Collect 10 plasma samples',
-        fact: 'The Sun fuses 600 million tonnes of hydrogen into helium every second, releasing the energy that lights the solar system.' },
+        brief: 'Scoop super-hot plasma \u2014 each sample also cools your rover down.',
+        science: 'The Sun fuses 600 million tonnes of hydrogen into helium every second, releasing the energy that lights and warms the whole solar system.' },
       { id: 'sun-scan', type: 'scan',
-        label: 'Scan a solar flare',
-        fact: 'Solar flares and coronal mass ejections fling charged particles into space, causing auroras — and sometimes knocking out satellites.' },
+        label: 'Scan an erupting solar flare',
+        brief: 'Hold near the flare just long enough to capture its burst of radiation.',
+        science: 'Solar flares and coronal mass ejections fling charged particles across space, sparking auroras \u2014 and sometimes knocking out satellites and power grids.' },
       { id: 'sun-beacon', type: 'reach',
         label: 'Reach the Parker Probe beacon',
-        fact: 'NASA\u2019s Parker Solar Probe is the fastest object ever built and is the first spacecraft to "touch" the Sun\u2019s outer atmosphere.' },
+        brief: 'Race to the marker dropped by the fastest craft humans have built.',
+        science: 'NASA\u2019s Parker Solar Probe hit 692,000 km/h and is the first spacecraft to fly through the Sun\u2019s outer atmosphere, the corona.' },
     ],
   },
 ];

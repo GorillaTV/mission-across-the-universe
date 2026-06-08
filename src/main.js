@@ -4,10 +4,11 @@ import { World } from './game/World.js';
 import { Rover } from './game/Rover.js';
 import { CollectibleField } from './game/Collectible.js';
 import { MissionSystem } from './game/MissionSystem.js';
+import { Tracks } from './game/Tracks.js';
 import { Hud } from './game/Hud.js';
 import { runRoverBuilder } from './game/RoverBuilder.js';
 import { travel } from './game/TravelSequence.js';
-import { getUnlockedUpgrades, newlyUnlocked, aggregateStats } from './game/Upgrades.js';
+import { getUnlockedUpgrades, newlyUnlocked, aggregateStats, aggregateEffects } from './game/Upgrades.js';
 
 // ---- Renderer / scene / camera ----
 const canvas = document.getElementById('scene');
@@ -42,11 +43,16 @@ const noKeys = { forward: false, back: false, left: false, right: false };
 
 // ---- Game objects ----
 const world = new World(scene);
+// Use the GPU's best anisotropic filtering so the surface texture keeps detail
+// into the distance instead of washing out to flat grey.
+world.maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
 const rover = new Rover(scene);
 const field = new CollectibleField(scene);
 const missions = new MissionSystem(scene, field);
+const tracks = new Tracks(scene);
 const hud = new Hud(document.getElementById('hud'), {
   onColorChange: (hex) => rover.setColor(hex),
+  onDrive: (dir, on) => { keys[dir] = on; },
 });
 
 // ---- Game state ----
@@ -55,6 +61,7 @@ const state = {
   planetIndex: 0,
   completedMissions: 0,
   heat: 0,
+  heatResist: 0,
   frozenUntil: 0,
 };
 
@@ -63,6 +70,13 @@ function applyUpgrades() {
   rover.applyUpgrades(ids);
   const { speedMult, turnMult } = aggregateStats(state.completedMissions);
   rover.setStatMultipliers(speedMult, turnMult);
+
+  // Functional upgrade effects.
+  const eff = aggregateEffects(state.completedMissions);
+  field.pickupRadius = 2.4 + eff.pickupBonus;
+  missions.setEffects({ scanMult: eff.scanMult });
+  state.heatResist = eff.heatResist;
+
   hud.setUpgrades(state.completedMissions);
 }
 
@@ -71,7 +85,7 @@ function onMissionComplete(def) {
   state.completedMissions += 1;
   const after = state.completedMissions;
 
-  hud.toast('🛰️ Mission complete!', def.fact, 'fact');
+  hud.toast('🛰️ Mission complete!', def.science || def.fact, 'fact');
 
   const unlocked = newlyUnlocked(before, after);
   applyUpgrades();
@@ -83,13 +97,23 @@ async function startPlanet(index) {
   const planet = PLANETS[index];
   await world.load(planet);
 
-  // Reset rover to centre
+  // Hook the freshly built terrain into everything that sits on the ground.
+  rover.setTerrain(world.terrain);
+  rover.setColliders(world.getColliders());
+  field.setTerrain(world.terrain);
+  missions.setTerrain(world.terrain);
+  tracks.setTerrain(world.terrain);
+  tracks.reset();
+
+  // Reset rover to centre (on the terrain surface).
   rover.reset(new THREE.Vector3(0, 0, 0), 0);
   snapCamera();
 
   state.heat = 0;
   hud.showHeat(planet.special === 'heat');
   hud.setHeat(0);
+
+  applyUpgrades();
 
   missions.start(planet, {
     onUpdate: (snap) => hud.renderMissions(snap),
@@ -107,7 +131,6 @@ async function startPlanet(index) {
   }
 
   hud.setTopBar(planet, index, PLANETS.length, rover.name);
-  applyUpgrades();
 
   await hud.showIntro(planet, index, PLANETS.length);
   state.phase = 'playing';
@@ -162,13 +185,29 @@ function snapCamera() {
 function updateHeat(dt) {
   const planet = PLANETS[state.planetIndex];
   if (planet.special !== 'heat') return;
-  state.heat = Math.min(1, state.heat + dt * 0.05);
+  state.heat = Math.min(1, state.heat + dt * 0.05 * (1 - state.heatResist));
   hud.setHeat(state.heat);
   if (state.heat >= 1 && performance.now() > state.frozenUntil) {
     state.frozenUntil = performance.now() + 1500;
     state.heat = 0.5;
     hud.toast('🔥 Overheated!', 'Your rover paused to cool its systems. Keep collecting plasma to stay cool!', 'fact');
   }
+}
+
+// ---- Mini-map (throttled) ----
+let miniAccum = 0;
+function updateMinimap(dt) {
+  miniAccum += dt;
+  if (miniAccum < 0.08) return;
+  miniAccum = 0;
+  hud.updateMinimap({
+    x: rover.position.x,
+    z: rover.position.z,
+    yaw: rover.yaw,
+    bounds: 70,
+    items: field.items,
+    markers: missions.markerInfo(),
+  });
 }
 
 // ---- Main loop ----
@@ -183,9 +222,11 @@ function loop() {
   if (state.phase === 'playing') {
     const frozen = now < state.frozenUntil;
     rover.update(dt, frozen ? noKeys : keys);
+    tracks.update(rover.position, rover.forwardVector());
     field.update(dt, rover.position, clock.t);
-    missions.update(dt, rover.position);
+    missions.update(dt, rover.position, rover.forwardVector());
     updateHeat(dt);
+    updateMinimap(dt);
   } else {
     rover.update(dt, noKeys);
   }

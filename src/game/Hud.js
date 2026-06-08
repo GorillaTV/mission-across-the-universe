@@ -1,7 +1,8 @@
 import { PALETTE } from './RoverBuilder.js';
 import { UPGRADES } from './Upgrades.js';
 
-const MISSION_ICON = { collect: '🪨', reach: '📍', scan: '📡' };
+const MISSION_ICON = { collect: '🪨', reach: '📍', scan: '📡', drill: '⛏️', photo: '📷' };
+const MARKER_COLOR = { reach: '#44ffaa', scan: '#66ccff', drill: '#ffa033', photo: '#ff5577' };
 
 export class Hud {
   constructor(root, callbacks = {}) {
@@ -37,7 +38,20 @@ export class Hud {
         <div class="heat-track"><div id="heat-fill"></div></div>
       </div>
 
-      <div id="controls-hint">WASD / Arrow keys to drive</div>
+      <div id="minimap-wrap">
+        <canvas id="minimap" width="180" height="180"></canvas>
+        <div class="minimap-label">MAP</div>
+      </div>
+
+      <div id="dpad">
+        <button class="dpad-btn dpad-up" data-dir="forward" aria-label="Forward">▲</button>
+        <button class="dpad-btn dpad-left" data-dir="left" aria-label="Left">◀</button>
+        <button class="dpad-btn dpad-right" data-dir="right" aria-label="Right">▶</button>
+        <button class="dpad-btn dpad-down" data-dir="back" aria-label="Back">▼</button>
+        <span class="dpad-hub"></span>
+      </div>
+
+      <div id="controls-hint">WASD / Arrows or the on-screen pad to drive</div>
 
       <div id="toast-area"></div>
       <div id="color-panel" class="side-panel hidden"></div>
@@ -49,6 +63,40 @@ export class Hud {
     this.root.querySelector('#garage-btn').onclick = () => this._toggleGarage();
     this._buildColorPanel();
     this._buildGaragePanel();
+    this._wireDpad();
+
+    this.miniCanvas = this.root.querySelector('#minimap');
+    this.miniCtx = this.miniCanvas.getContext('2d');
+  }
+
+  // ---- Touch D-pad (iPad) ----
+  _wireDpad() {
+    const pad = this.root.querySelector('#dpad');
+    const press = (dir, on) => this.callbacks.onDrive?.(dir, on);
+    for (const btn of pad.querySelectorAll('.dpad-btn')) {
+      const dir = btn.dataset.dir;
+      const down = (e) => {
+        e.preventDefault();
+        btn.classList.add('active');
+        press(dir, true);
+        try { btn.setPointerCapture(e.pointerId); } catch {}
+      };
+      const up = (e) => {
+        e.preventDefault();
+        btn.classList.remove('active');
+        press(dir, false);
+      };
+      btn.addEventListener('pointerdown', down);
+      btn.addEventListener('pointerup', up);
+      btn.addEventListener('pointercancel', up);
+      btn.addEventListener('pointerleave', up);
+      btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+    // Show the pad once any touch happens (kept visible afterwards).
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+      pad.classList.add('show');
+    }
+    window.addEventListener('touchstart', () => pad.classList.add('show'), { once: true, passive: true });
   }
 
   // ---- Top bar ----
@@ -76,6 +124,67 @@ export class Hud {
       `;
       list.appendChild(li);
     }
+  }
+
+  // ---- Mini-map ----
+  updateMinimap(data) {
+    const ctx = this.miniCtx;
+    if (!ctx) return;
+    const W = this.miniCanvas.width;
+    const C = W / 2;
+    const bounds = data.bounds || 70;
+    const scale = (C - 10) / bounds;
+    ctx.clearRect(0, 0, W, W);
+
+    // boundary disc
+    ctx.beginPath();
+    ctx.arc(C, C, C - 6, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(10,16,28,0.72)';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(120,180,255,0.5)';
+    ctx.stroke();
+
+    const toScreen = (wx, wz) => [C + wx * scale, C + wz * scale];
+
+    // collectibles
+    if (data.items) {
+      ctx.fillStyle = '#ffe08a';
+      for (const it of data.items) {
+        if (it.picked) continue;
+        const [sx, sy] = toScreen(it.mesh.position.x, it.mesh.position.z);
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // mission markers
+    if (data.markers) {
+      for (const mk of data.markers) {
+        const [sx, sy] = toScreen(mk.x, mk.z);
+        ctx.fillStyle = MARKER_COLOR[mk.type] || '#ffffff';
+        ctx.beginPath();
+        ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // rover (triangle pointing along heading)
+    const [rx, ry] = toScreen(data.x, data.z);
+    const fx = Math.sin(data.yaw);
+    const fz = Math.cos(data.yaw);
+    ctx.save();
+    ctx.translate(rx, ry);
+    ctx.rotate(Math.atan2(fx, fz));
+    ctx.fillStyle = '#ff5a3c';
+    ctx.beginPath();
+    ctx.moveTo(0, -7);
+    ctx.lineTo(5, 6);
+    ctx.lineTo(-5, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
   }
 
   // ---- Fact toasts ----
@@ -138,6 +247,7 @@ export class Hud {
       return `<div class="upgrade-row ${unlocked ? 'unlocked' : 'locked'}">
         <div class="upgrade-head"><span>${unlocked ? '✅' : '🔒'} ${u.name}</span>
           <span class="upgrade-th">${unlocked ? 'Equipped' : `${u.threshold} missions`}</span></div>
+        <div class="upgrade-effect">⚙️ ${u.effect}</div>
         <div class="upgrade-fact">${u.fact}</div>
       </div>`;
     }).join('');
@@ -153,7 +263,7 @@ export class Hud {
   }
 
   showUpgrade(upgrade) {
-    this.toast(`🛠️ New upgrade: ${upgrade.name}!`, upgrade.fact, 'upgrade');
+    this.toast(`🛠️ New upgrade: ${upgrade.name}!`, `${upgrade.effect} ${upgrade.fact}`, 'upgrade');
     const btn = this.root.querySelector('#garage-btn');
     btn.classList.add('pulse');
     setTimeout(() => btn.classList.remove('pulse'), 4000);
