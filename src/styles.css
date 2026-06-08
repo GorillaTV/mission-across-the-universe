@@ -713,3 +713,91 @@ body {
   margin: 2px 0 4px;
 }
 .upgrade-row.locked .upgrade-effect { color: var(--muted); }
+
+/* ---------- Photo album / camera ---------- */
+#photo-dock {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 70vw;
+  pointer-events: none;
+}
+#photo-dock.hidden { display: none; }
+#photo-roll {
+  display: flex;
+  gap: 8px;
+  max-width: 70vw;
+  overflow-x: auto;
+  padding: 2px;
+  pointer-events: auto;
+  scrollbar-width: thin;
+}
+.photo-thumb {
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(150,190,255,0.5);
+  background: rgba(10,14,24,0.6);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+  opacity: 0;
+  transform: translateY(8px) scale(0.9);
+  transition: opacity 0.25s, transform 0.25s;
+}
+.photo-thumb.in { opacity: 1; transform: none; }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-cap {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  font-size: 0.56rem;
+  line-height: 1.1;
+  padding: 2px 3px;
+  color: #eaf2ff;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.photo-actions {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+.photo-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #08101f;
+  background: linear-gradient(135deg, #ffce3a, #ff9e2c);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+  touch-action: manipulation;
+}
+.photo-btn:active { transform: translateY(1px); }
+.photo-btn.send {
+  color: #eaf6ff;
+  background: linear-gradient(135deg, #2f86ff, #4ad6ff);
+}
+.photo-btn.send.hidden { display: none; }
+
+#cam-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+}
+#cam-flash.flash { animation: camflash 0.4s ease-out; }
+@keyframes camflash {
+  0% { opacity: 0.85; }
+  100% { opacity: 0; }
+}

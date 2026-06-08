@@ -53,6 +53,15 @@ export class Hud {
 
       <div id="controls-hint">WASD / Arrows or the on-screen pad to drive</div>
 
+      <div id="photo-dock" class="hidden">
+        <div id="photo-roll"></div>
+        <div class="photo-actions">
+          <button id="take-photo-btn" class="photo-btn">📷 Take Photo</button>
+          <button id="send-photos-btn" class="photo-btn send hidden">📡 Send to Mission Control</button>
+        </div>
+      </div>
+      <div id="cam-flash"></div>
+
       <div id="toast-area"></div>
       <div id="color-panel" class="side-panel hidden"></div>
       <div id="garage-panel" class="side-panel hidden"></div>
@@ -64,6 +73,7 @@ export class Hud {
     this._buildColorPanel();
     this._buildGaragePanel();
     this._wireDpad();
+    this._wirePhotos();
 
     this.miniCanvas = this.root.querySelector('#minimap');
     this.miniCtx = this.miniCanvas.getContext('2d');
@@ -99,7 +109,46 @@ export class Hud {
     window.addEventListener('touchstart', () => pad.classList.add('show'), { once: true, passive: true });
   }
 
-  // ---- Top bar ----
+  // ---- Photo album ----
+  _wirePhotos() {
+    this.photos = [];
+    this.root.querySelector('#take-photo-btn').onclick = () => this.callbacks.onTakePhoto?.();
+    this.root.querySelector('#send-photos-btn').onclick = () =>
+      this.callbacks.onSendPhotos?.(this.photos.slice());
+  }
+
+  showPhotoControls(show) {
+    this.root.querySelector('#photo-dock').classList.toggle('hidden', !show);
+  }
+
+  addPhoto({ thumb, caption, note }) {
+    this.photos.push({ thumb, caption, note });
+    const roll = this.root.querySelector('#photo-roll');
+    const el = document.createElement('div');
+    el.className = 'photo-thumb';
+    el.title = note ? `${caption} - ${note}` : caption;
+    el.innerHTML = `${thumb ? `<img src="${thumb}" alt="${caption}">` : ''}<span class="photo-cap">${caption}</span>`;
+    roll.appendChild(el);
+    roll.scrollLeft = roll.scrollWidth;
+    requestAnimationFrame(() => el.classList.add('in'));
+    this.root.querySelector('#send-photos-btn').classList.remove('hidden');
+  }
+
+  clearPhotos() {
+    this.photos = [];
+    const roll = this.root.querySelector('#photo-roll');
+    if (roll) roll.innerHTML = '';
+    const send = this.root.querySelector('#send-photos-btn');
+    if (send) send.classList.add('hidden');
+  }
+
+  cameraFlash() {
+    const f = this.root.querySelector('#cam-flash');
+    if (!f) return;
+    f.classList.remove('flash');
+    void f.offsetWidth;
+    f.classList.add('flash');
+  }
   setTopBar(planet, index, total, roverName) {
     this.roverName = roverName;
     this.root.querySelector('#planet-index').textContent = `World ${index + 1}/${total}`;

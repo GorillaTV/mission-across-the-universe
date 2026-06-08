@@ -12,7 +12,7 @@ import { getUnlockedUpgrades, newlyUnlocked, aggregateStats, aggregateEffects } 
 
 // ---- Renderer / scene / camera ----
 const canvas = document.getElementById('scene');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -35,6 +35,7 @@ const KEYMAP = {
 };
 addEventListener('keydown', (e) => {
   if (KEYMAP[e.code]) { keys[KEYMAP[e.code]] = true; e.preventDefault(); }
+  if (e.code === 'KeyP' && state.phase === 'playing') { takePhotoAction(); e.preventDefault(); }
 });
 addEventListener('keyup', (e) => {
   if (KEYMAP[e.code]) { keys[KEYMAP[e.code]] = false; e.preventDefault(); }
@@ -53,7 +54,63 @@ const tracks = new Tracks(scene);
 const hud = new Hud(document.getElementById('hud'), {
   onColorChange: (hex) => rover.setColor(hex),
   onDrive: (dir, on) => { keys[dir] = on; },
+  onTakePhoto: () => takePhotoAction(),
+  onSendPhotos: (photos) => sendPhotos(photos),
 });
+
+// ---- Photo capture (rover camera) ----
+const thumbCanvas = document.createElement('canvas');
+thumbCanvas.width = 220;
+thumbCanvas.height = 138;
+const thumbCtx = thumbCanvas.getContext('2d');
+
+function capturePhoto() {
+  try {
+    thumbCtx.drawImage(renderer.domElement, 0, 0, thumbCanvas.width, thumbCanvas.height);
+    return thumbCanvas.toDataURL('image/jpeg', 0.55);
+  } catch (e) {
+    return null;
+  }
+}
+
+const GENERIC_NOTES = [
+  'Regolith and scattered boulders.',
+  'Surface panorama toward the horizon.',
+  'Close-up of the rocky terrain.',
+  'Dusty plains under an alien sky.',
+];
+let genericNoteIdx = 0;
+
+function takePhotoAction() {
+  if (state.phase !== 'playing') return;
+  const thumb = capturePhoto();
+  // If the rover is lined up with a photo objective this completes it and
+  // returns the mission def so the snapshot gets the real subject + science.
+  const def = missions.takePhoto();
+  const planet = PLANETS[state.planetIndex];
+  let caption, note;
+  if (def) {
+    caption = def.subject || def.label;
+    note = def.science || def.brief || '';
+  } else {
+    caption = `${planet.name} surface`;
+    note = GENERIC_NOTES[genericNoteIdx % GENERIC_NOTES.length];
+    genericNoteIdx += 1;
+  }
+  hud.addPhoto({ thumb, caption, note });
+  hud.cameraFlash();
+}
+
+function sendPhotos(photos) {
+  if (!photos || !photos.length) return;
+  const subjects = [...new Set(photos.map((p) => p.caption))];
+  hud.toast(
+    '📡 Transmitted to Mission Control',
+    `${photos.length} image${photos.length > 1 ? 's' : ''} received: ${subjects.join(', ')}. Excellent survey work, rover!`,
+    'fact'
+  );
+  hud.clearPhotos();
+}
 
 // ---- Game state ----
 const state = {
@@ -94,6 +151,8 @@ function onMissionComplete(def) {
 
 async function startPlanet(index) {
   state.phase = 'transition';
+  hud.showPhotoControls(false);
+  hud.clearPhotos();
   const planet = PLANETS[index];
   await world.load(planet);
 
@@ -134,6 +193,7 @@ async function startPlanet(index) {
 
   await hud.showIntro(planet, index, PLANETS.length);
   state.phase = 'playing';
+  hud.showPhotoControls(true);
 }
 
 let clearing = false;
@@ -142,6 +202,7 @@ async function onPlanetCleared() {
   clearing = true;
   state.phase = 'transition';
   hud.showHeat(false);
+  hud.showPhotoControls(false);
   const planet = PLANETS[state.planetIndex];
   const isLast = state.planetIndex >= PLANETS.length - 1;
   const nextName = isLast ? null : PLANETS[state.planetIndex + 1].name;

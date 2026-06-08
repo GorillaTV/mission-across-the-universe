@@ -5,10 +5,9 @@ const SCAN_RADIUS = 7;
 const SCAN_TIME = 2.6; // seconds within range to finish a scan
 const DRILL_RADIUS = 3.2;
 const DRILL_TIME = 3.4; // seconds holding over a deposit
-const PHOTO_NEAR = 6;
-const PHOTO_FAR = 24;
-const PHOTO_TIME = 1.6; // seconds framed in view
-const PHOTO_AIM = 0.82; // dot threshold = roughly within view cone
+const PHOTO_NEAR = 4;
+const PHOTO_FAR = 30;
+const PHOTO_AIM = 0.45; // dot threshold = generous view cone
 
 // Runs the missions for a single planet: spawns collectibles + markers,
 // tracks progress and fires callbacks as objectives complete.
@@ -107,6 +106,21 @@ export class MissionSystem {
     }
   }
 
+  // Fired by the HUD "Take Photo" button / P key. Snaps the first photo
+  // objective the rover is currently lined up with. Returns the mission def
+  // on success so the caller can show a flash/toast, or null if not lined up.
+  takePhoto() {
+    const m = this.missions.find((mm) => mm.type === 'photo' && !mm.done && mm.canPhoto);
+    if (!m) return null;
+    this._complete(m);
+    return m.def;
+  }
+
+  // True when any active photo objective is lined up (used to show the button).
+  photoReady() {
+    return this.missions.some((m) => m.type === 'photo' && !m.done && m.canPhoto);
+  }
+
   _emitUpdate() {
     this.callbacks.onUpdate?.(this.snapshot());
   }
@@ -117,15 +131,18 @@ export class MissionSystem {
       label: m.label,
       type: m.type,
       done: m.done,
+      ready: !!m.canPhoto,
       progress: Math.min(1, m.progress),
       detail:
         m.type === 'collect'
           ? `${Math.min(m.count, m.target)}/${m.target}`
           : m.done
             ? 'done'
-            : (m.type === 'scan' || m.type === 'drill' || m.type === 'photo')
-              ? `${Math.round(m.progress * 100)}%`
-              : '',
+            : m.type === 'photo'
+              ? (m.canPhoto ? '📷 ready' : 'line up the shot')
+              : (m.type === 'scan' || m.type === 'drill')
+                ? `${Math.round(m.progress * 100)}%`
+                : '',
     }));
   }
 
@@ -171,18 +188,20 @@ export class MissionSystem {
         }
       } else if (m.type === 'photo') {
         if (m.marker.userData.flag) m.marker.userData.flag.rotation.y = Math.sin(this.t * 1.5) * 0.3;
-        let aiming = false;
-        if (roverForward && dist > PHOTO_NEAR && dist < PHOTO_FAR) {
-          const inv = 1 / (dist || 1);
-          const dot = (dx * inv) * roverForward.x + (dz * inv) * roverForward.z;
-          if (dot > PHOTO_AIM) aiming = true;
+        // The photo is taken with a button (see takePhoto). Here we just decide
+        // whether the player is lined up well enough for the shutter to arm.
+        let ready = false;
+        if (dist > PHOTO_NEAR && dist < PHOTO_FAR) {
+          if (!roverForward) {
+            ready = true;
+          } else {
+            const inv = 1 / (dist || 1);
+            const dot = (dx * inv) * roverForward.x + (dz * inv) * roverForward.z;
+            ready = dot > PHOTO_AIM;
+          }
         }
-        if (aiming) {
-          m.progress = Math.min(1, m.progress + dt / PHOTO_TIME);
-          changed = true;
-          if (m.progress >= 1) this._complete(m);
-        } else if (m.progress > 0 && m.progress < 1) {
-          m.progress = Math.max(0, m.progress - dt * 0.5);
+        if (ready !== m.canPhoto) {
+          m.canPhoto = ready;
           changed = true;
         }
       }
