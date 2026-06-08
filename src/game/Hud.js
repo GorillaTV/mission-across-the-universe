@@ -278,7 +278,9 @@ export class Hud {
     const fz = Math.cos(data.yaw);
     ctx.save();
     ctx.translate(rx, ry);
-    ctx.rotate(Math.atan2(fx, fz));
+    // Canvas Y points down, so the heading's Z must be negated for the
+    // triangle to point where the rover actually faces.
+    ctx.rotate(Math.atan2(fx, -fz));
     ctx.fillStyle = '#ff5a3c';
     ctx.beginPath();
     ctx.moveTo(0, -7);
