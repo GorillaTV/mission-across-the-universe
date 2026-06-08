@@ -67,10 +67,29 @@ export class CollectibleField {
     this.onPickup = null;
     this.pickupRadius = 2.4;
     this.terrain = null;
+    this.colliders = [];
   }
 
   setTerrain(terrain) {
     this.terrain = terrain;
+  }
+
+  // Scenery rock footprints ({x, z, r}) that samples must not spawn inside.
+  setColliders(list) {
+    this.colliders = list || [];
+  }
+
+  // True if (x, z) sits inside (or right against) any solid rock, so a sample
+  // placed there would be buried and unreachable.
+  _blocked(x, z) {
+    for (const c of this.colliders) {
+      const dx = x - c.x;
+      const dz = z - c.z;
+      // Clear the rock radius plus room for the rover to nose in and grab it.
+      const clear = c.r + 1.8;
+      if (dx * dx + dz * dz < clear * clear) return true;
+    }
+    return false;
   }
 
   _ground(x, z) {
@@ -89,10 +108,15 @@ export class CollectibleField {
   spawn(item, count, color, bounds = 60) {
     for (let i = 0; i < count; i++) {
       const mesh = new THREE.Mesh(makeGeometry(item), makeMaterial(item, color));
-      const ang = Math.random() * Math.PI * 2;
-      const rad = 10 + Math.random() * (bounds - 12);
-      const x = Math.cos(ang) * rad;
-      const z = Math.sin(ang) * rad;
+      // Pick a clear spot, retrying so samples never spawn buried inside a rock.
+      let x = 0, z = 0;
+      for (let attempt = 0; attempt < 24; attempt++) {
+        const ang = Math.random() * Math.PI * 2;
+        const rad = 10 + Math.random() * (bounds - 12);
+        x = Math.cos(ang) * rad;
+        z = Math.sin(ang) * rad;
+        if (!this._blocked(x, z)) break;
+      }
       const hover = 0.6 + Math.random() * 0.3;
       const baseY = this._ground(x, z) + hover;
       mesh.position.set(x, baseY, z);

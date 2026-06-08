@@ -171,6 +171,7 @@ async function startPlanet(index, skipIntro = false) {
   rover.setTerrain(world.terrain);
   rover.setColliders(world.getColliders());
   field.setTerrain(world.terrain);
+  field.setColliders(world.getColliders());
   missions.setTerrain(world.terrain);
   tracks.setTerrain(world.terrain);
   tracks.reset();
