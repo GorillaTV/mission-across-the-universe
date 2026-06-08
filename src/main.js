@@ -37,17 +37,6 @@ const KEYMAP = {
 addEventListener('keydown', (e) => {
   if (KEYMAP[e.code]) { keys[KEYMAP[e.code]] = true; e.preventDefault(); }
   if (e.code === 'KeyP' && state.phase === 'playing') { takePhotoAction(); e.preventDefault(); }
-  // Dev shortcuts: warp between planets without replaying.
-  if (state.phase === 'playing') {
-    if (e.code === 'BracketRight') { warpToPlanet(state.planetIndex + 1); e.preventDefault(); }
-    else if (e.code === 'BracketLeft') { warpToPlanet(state.planetIndex - 1); e.preventDefault(); }
-    else if (/^Digit[0-9]$/.test(e.code)) {
-      const n = Number(e.code.slice(5));
-      const idx = n === 0 ? 9 : n - 1; // 1..9 -> 0..8, 0 -> 10th planet
-      warpToPlanet(idx);
-      e.preventDefault();
-    }
-  }
 });
 addEventListener('keyup', (e) => {
   if (KEYMAP[e.code]) { keys[KEYMAP[e.code]] = false; e.preventDefault(); }
@@ -233,19 +222,6 @@ async function startPlanet(index, skipIntro = false) {
   await hud.showIntro(planet, index, PLANETS.length, skipIntro);
   state.phase = 'playing';
   hud.showPhotoControls(true);
-}
-
-// Dev helper: jump straight to a planet (no travel cutscene / intro modal).
-let warping = false;
-async function warpToPlanet(index) {
-  if (warping || state.phase === 'transition') return;
-  warping = true;
-  index = ((index % PLANETS.length) + PLANETS.length) % PLANETS.length;
-  state.planetIndex = index;
-  clearing = false;
-  await startPlanet(index, true);
-  hud.toast('🛰️ Dev warp', `Jumped to ${PLANETS[index].name}. Use [ ] or number keys to switch planets.`, 'fact');
-  warping = false;
 }
 
 let clearing = false;
